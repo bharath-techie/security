@@ -59,6 +59,8 @@ import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.MultiGetRequest;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.GetAllPitNodesRequest;
+import org.opensearch.action.search.GetAllPitNodesResponse;
 import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilter;
@@ -82,6 +84,7 @@ import org.opensearch.security.configuration.AdminDNs;
 import org.opensearch.security.configuration.CompatConfig;
 import org.opensearch.security.configuration.DlsFlsRequestValve;
 import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.privileges.PitPrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluatorResponse;
 import org.opensearch.security.resolver.IndexResolverReplacer;
@@ -113,9 +116,12 @@ public class SecurityFilter implements ActionFilter {
     private final RolesInjector rolesInjector;
     private final UserInjector userInjector;
 
+    private final PitFilter pitFilter;
+
     public SecurityFilter(final Settings settings, final PrivilegesEvaluator evalp, final AdminDNs adminDns,
                           DlsFlsRequestValve dlsFlsValve, AuditLog auditLog, ThreadPool threadPool, ClusterService cs,
-                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, final XFFResolver xffResolver) {
+                          final CompatConfig compatConfig, final IndexResolverReplacer indexResolverReplacer, final XFFResolver xffResolver,
+                          final PitFilter pitFilter) {
         this.evalp = evalp;
         this.adminDns = adminDns;
         this.dlsFlsValve = dlsFlsValve;
@@ -128,6 +134,7 @@ public class SecurityFilter implements ActionFilter {
         this.immutableIndicesMatcher = WildcardMatcher.from(settings.getAsList(ConfigConstants.SECURITY_COMPLIANCE_IMMUTABLE_INDICES, Collections.emptyList()));
         this.rolesInjector = new RolesInjector(auditLog);
         this.userInjector = new UserInjector(settings, threadPool, auditLog, xffResolver);
+        this.pitFilter = pitFilter;
         log.info("{} indices are made immutable.", immutableIndicesMatcher);
     }
 
@@ -300,6 +307,8 @@ public class SecurityFilter implements ActionFilter {
                 log.trace("Evaluate permissions for user: {}", user.getName());
             }
 
+
+
             final PrivilegesEvaluatorResponse pres = eval.evaluate(user, action, request, task, injectedRoles);
             
             if (log.isDebugEnabled()) {
@@ -307,11 +316,14 @@ public class SecurityFilter implements ActionFilter {
             }
 
             if (pres.isAllowed()) {
+
                 auditLog.logGrantedPrivileges(action, request, task);
                 auditLog.logIndexEvent(action, request, task);
                 if (!dlsFlsValve.invoke(action, request, listener, pres.getEvaluatedDlsFlsConfig(), pres.getResolved())) {
                     return;
                 }
+
+
                 final CreateIndexRequestBuilder createIndexRequestBuilder = pres.getCreateIndexRequestBuilder();
                 if (createIndexRequestBuilder == null) {
                     chain.proceed(task, action, request, listener);

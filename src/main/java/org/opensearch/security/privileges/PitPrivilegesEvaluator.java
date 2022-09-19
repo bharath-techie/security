@@ -56,6 +56,7 @@ public class PitPrivilegesEvaluator {
             return presponse;
         }
         if (request instanceof GetAllPitNodesRequest) {
+
             return handleGetAllPitsAccess(request, clusterService, user, securityRoles,
                     action, resolver, dnfOfEmptyResultsEnabled, presponse);
         } else if (request instanceof DeletePitRequest) {

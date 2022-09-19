@@ -34,10 +34,10 @@ import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.EvaluatedDlsFlsConfig;
 
 public class PrivilegesEvaluatorResponse {
-    boolean allowed = false;
+    public boolean allowed = false;
     Set<String> missingPrivileges = new HashSet<String>();
-    Set<String> missingSecurityRoles = new HashSet<>();
-    Set<String> resolvedSecurityRoles = new HashSet<>();
+    public Set<String> missingSecurityRoles = new HashSet<>();
+    public Set<String> resolvedSecurityRoles = new HashSet<>();
     EvaluatedDlsFlsConfig evaluatedDlsFlsConfig;
     PrivilegesEvaluatorResponseState state = PrivilegesEvaluatorResponseState.PENDING;
     Resolved resolved;

@@ -137,11 +137,13 @@ import org.opensearch.security.configuration.PrivilegesInterceptorImpl;
 import org.opensearch.security.configuration.Salt;
 import org.opensearch.security.configuration.SecurityFlsDlsIndexSearcherWrapper;
 import org.opensearch.security.dlic.rest.api.SecurityRestApiActions;
+import org.opensearch.security.filter.PitFilter;
 import org.opensearch.security.filter.SecurityFilter;
 import org.opensearch.security.filter.SecurityRestFilter;
 import org.opensearch.security.http.SecurityHttpServerTransport;
 import org.opensearch.security.http.SecurityNonSslHttpServerTransport;
 import org.opensearch.security.http.XFFResolver;
+import org.opensearch.security.privileges.PitPrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesEvaluator;
 import org.opensearch.security.privileges.PrivilegesInterceptor;
 import org.opensearch.security.resolver.IndexResolverReplacer;
@@ -810,7 +812,10 @@ public final class OpenSearchSecurityPlugin extends OpenSearchSecuritySSLPlugin 
         evaluator = new PrivilegesEvaluator(clusterService, threadPool, cr, resolver, auditLog,
                 settings, privilegesInterceptor, cih, irr, dlsFlsEnabled, namedXContentRegistry);
 
-        sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver);
+        PitFilter pitFilter = new PitFilter(clusterService, threadPool, resolver, auditLog,
+                 privilegesInterceptor, adminDns, evaluator);
+
+        sf = new SecurityFilter(settings, evaluator, adminDns, dlsFlsValve, auditLog, threadPool, cs, compatConfig, irr, xffResolver, pitFilter);
                 
         final String principalExtractorClass = settings.get(SSLConfigConstants.SECURITY_SSL_TRANSPORT_PRINCIPAL_EXTRACTOR_CLASS, null);
 

@@ -44,6 +44,7 @@ import org.apache.logging.log4j.Logger;
 import org.greenrobot.eventbus.Subscribe;
 
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.ActionListener;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.IndicesRequest;
 import org.opensearch.action.admin.cluster.shards.ClusterSearchShardsRequest;
@@ -87,6 +88,7 @@ import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.security.auditlog.AuditLog;
 import org.opensearch.security.configuration.ClusterInfoHolder;
 import org.opensearch.security.configuration.ConfigurationRepository;
+import org.opensearch.security.dlic.rest.api.AuthTokenProcessorAction;
 import org.opensearch.security.resolver.IndexResolverReplacer;
 import org.opensearch.security.resolver.IndexResolverReplacer.Resolved;
 import org.opensearch.security.securityconf.ConfigModel;
@@ -128,7 +130,7 @@ public class PrivilegesEvaluator {
     private final IndexResolverReplacer irr;
     private final SnapshotRestoreEvaluator snapshotRestoreEvaluator;
 
-    private final PitAccessEvaluator pitAccessEvaluator;
+    private final PitPrivilegesEvaluator pitPrivilegesEvaluator;
     private final SecurityIndexAccessEvaluator securityIndexAccessEvaluator;
     private final ProtectedIndexAccessEvaluator protectedIndexAccessEvaluator;
     private final TermsAggregationEvaluator termsAggregationEvaluator;
@@ -160,7 +162,7 @@ public class PrivilegesEvaluator {
         securityIndexAccessEvaluator = new SecurityIndexAccessEvaluator(settings, auditLog, irr);
         protectedIndexAccessEvaluator = new ProtectedIndexAccessEvaluator(settings, auditLog);
         termsAggregationEvaluator = new TermsAggregationEvaluator();
-        pitAccessEvaluator = new PitAccessEvaluator();
+        pitPrivilegesEvaluator = new PitPrivilegesEvaluator();
         this.namedXContentRegistry = namedXContentRegistry;
         this.dlsFlsEnabled = dlsFlsEnabled;
         this.dfmEmptyOverwritesAll = settings.getAsBoolean(ConfigConstants.SECURITY_DFM_EMPTY_OVERRIDES_ALL, false);
@@ -176,7 +178,7 @@ public class PrivilegesEvaluator {
         this.dcm = dcm;
     }
 
-    private SecurityRoles getSecurityRoles(Set<String> roles) {
+    public SecurityRoles getSecurityRoles(Set<String> roles) {
         return configModel.getSecurityRoles().filter(roles);
     }
 
@@ -289,8 +291,8 @@ public class PrivilegesEvaluator {
         }
 
         // check access for point in time requests
-        if(pitAccessEvaluator.evaluate(request, clusterService, user, securityRoles,
-                action0, resolver, dcm.isDnfofForEmptyResultsEnabled(), presponse).isComplete()) {
+        if(pitPrivilegesEvaluator.evaluate(request, clusterService, user, securityRoles,
+                action0, resolver, dcm.isDnfofForEmptyResultsEnabled(), presponse, listener).isComplete()) {
             return presponse;
         }
 
